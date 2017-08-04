@@ -48,8 +48,8 @@ if demo:
 numWordsInStream = 1
 
 # reads word in from external source
-wordList1 = open("Davis&BowersWL.txt")
-wordList2 = open("Davis&BowersWL2.txt")
+wordList1 = open("wordLists/Davis&BowersWL.txt")
+wordList2 = open("wordLists/Davis&BowersWL2.txt")
 
 wordList1 = [x.rstrip() for x in wordList1.readlines()]
 wordList2 = [x.rstrip() for x in wordList2.readlines()]
