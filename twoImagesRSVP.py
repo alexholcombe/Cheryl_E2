@@ -33,10 +33,11 @@ demo=False #False
 exportImages= False #quits after one trial
 subject='Hubert' #user is prompted to enter true subject name
 if autopilot: subject='auto'
-if os.path.isdir('.'+os.sep+'data'):
-    dataDir='data'
+dataDir = 'dataRaw'
+if os.path.isdir('.'+os.sep+dataDir):
+    dataDir='dataRaw'
 else:
-    print('"data" directory does not exist, so saving data in present working directory')
+    print(dataDir,' directory does not exist, so saving data in present working directory')
     dataDir='.'
 timeAndDateStr = time.strftime("%d%b%Y_%H-%M", time.localtime())
 
@@ -53,16 +54,12 @@ prefaceStaircaseNoise = np.array([5,20,20,20, 50,50,50,5,80,80,80,5,95,95,95]) #
 descendingPsycho = True #psychometric function- more noise means worse performance
 threshCriterion = 0.58
 
-numWordsInStream = 26 #Experiment will only work if all 26 letters are presented, otherwise error when you pick a letter that was not presented
-wordsUnparsed="a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z" 
-wordList = wordsUnparsed.split(",") #split into list
-for i in range(len(wordList)):
-    wordList[i] = wordList[i].replace(" ", "") #delete spaces
-if len(wordList) > numWordsInStream:
-    print("WARNING: you have asked for streams that have more stimuli than are in the wordList, so some will be duplicated")
+numStimInStream = 2 #Experiment will only work if all 26 letters are presented, otherwise error when you pick a letter that was not presented
+stimFileList = ['1','2']
+stimFileSuffix = '.png'
+if len(stimFileList) > numStimInStream:
+    print("WARNING: you have asked for streams that have more stimuli than are in the stimFileList, so some will be duplicated")
 #Later on, a list of indices into this list will be randomly permuted for each trial
-print(wordList)
-print(len(wordList))
 
 bgColor = [-.7,-.7,-.7] # [-1,-1,-1]
 cueColor = [1.,1.,1.]
@@ -136,7 +133,7 @@ rateInfo = 'total SOA=' + str(round(  (ISIframes + letterDurFrames)*1000./refres
 rateInfo+=  'ISIframes ='+str(ISIframes)+' or '+str(ISIframes*(1000./refreshRate))+' ms and letterDurFrames ='+str(letterDurFrames)+' or '+str(round( letterDurFrames*(1000./refreshRate), 2))+'ms'
 logging.info(rateInfo); print(rateInfo)
 
-trialDurFrames = int( numWordsInStream*(ISIframes+letterDurFrames) ) #trial duration in frames
+trialDurFrames = int( numStimInStream*(ISIframes+letterDurFrames) ) #trial duration in frames
 
 monitorname = 'testmonitor'
 waitBlank = False
@@ -303,41 +300,7 @@ def detectDuplicates(myList):
     if len( list(uniqueVals) ) < len(myList):
         return True
     else: return False
-    
-def readFileAndScramble(numWordsInStream):
-        #Abandoning use of this for Cheryl's experiment because too hard to find enough non-word bigrams for which letters not repeated in either stream
-        stimFile = 'wordStimuliGeneration/twoLetters-Cheryl.txt'
-        stimListFile= open(stimFile)
-        bigramList = [x.rstrip() for x in stimListFile.readlines()]
-        print('Read in', len(bigramList), 'strings')
-        #print('bigramList = ',bigramList)
-        stimListFile.close()
-        #Scramble 
-        shuffled = deepcopy(bigramList)
-        
-        shuffleUntilNoDuplicatesOfFirstOrSecondLetter = True
-        duplicates = True #intiialise this as true so the loop will run at least once
-        while shuffleUntilNoDuplicatesOfFirstOrSecondLetter and duplicates:
-            random.shuffle(shuffled)
-            #print('first 10 unshuffled=',bigramList[:10])
-            #print('first 10 shuffled=',shuffled[:10])
-            #Break into two
-            firstLetters = list()
-            secondLetters = list()
-            for bigram in shuffled[:numWordsInStream]:
-                firstLetter = bigram[0]
-                secondLetter = bigram[1]
-                firstLetters.append( firstLetter )
-                secondLetters.append ( secondLetter ) 
-            print("shuffled firstLetters=",firstLetters," secondLetters=",secondLetters)
-            duplicates = detectDuplicates(firstLetters)
-            if not duplicates:
-                duplicates = detectDuplicates(secondLetters)
-                
-        print('first 20 shuffled firstLetters=',firstLetters[:20])
-        print('first 20  shuffled secondLetters=',secondLetters[:20])
-        return firstLetters, secondLetters
-
+ 
 def findLtrInList(letter,wordList):
     try:
         idx = wordList.index(letter)
@@ -349,50 +312,32 @@ def findLtrInList(letter,wordList):
     return idx
     
 def calcSequenceForThisTrial():
-    print("lenWordlist",len(wordList))
-    idxsIntoWordList = range(len(wordList)) #create a list of indexes of the entire word list: 0,1,2,3,4,5,...23
-    print("idxsInto",idxsIntoWordList)
-    readFromFile = False
-    if readFromFile:
-        #read in the file of list of bigrams. Doesn't work because  too hard to find enough non-word bigrams for which letters not repeated in either stream
-        firstLetters, secondLetters = readFileAndScramble(numWordsInStream)
-        #Now must determine what indexes into the wordList (list of letters pre-drawn) correspond to these
-        idxsStream1 = list()
-        print("idxsStream1FirstTime",idxsStream1)
-        idxsStream2 = list()
-        print("idxsStream2FirstTime",idxsStream2)
-        for ltri in range(numWordsInStream): #Find where in the "wordList" each letter is, add it to idxsStream1
-            letter = firstLetters[ltri]
-            idx = findLtrInList(letter, wordList)
-            idxsStream1.append(idx)
-            print("idxsStream1SecondTime",idxsStream1)
-        #print("final idxsStream1=",idxsStream1)
-        for ltri in range(numWordsInStream): #Find where in the "wordList" each letter is, add it to idxsStream1
-            letter = secondLetters[ltri]
-            idx = findLtrInList(letter, wordList)
-            idxsStream2.append(idx)
-            print("idxsStream2SecondTime",idxsStream2)
-    else: #if not readFromFile: #just create a shuffled index of all the possibilities
-        np.random.shuffle(idxsIntoWordList) #0,1,2,3,4,5,... -> randomly permuted 3,2,5,...
-        print("idxsintoWordList",idxsIntoWordList)
-        idxsStream1 = copy.deepcopy(idxsIntoWordList) #first RSVP stream
-        idxsStream1= idxsStream1[:numWordsInStream] #take the first numWordsInStream of the shuffled list
-        idxsStream2 = copy.deepcopy(idxsIntoWordList)  #make a copy for the right stream, and permute them on the next list
-        np.random.shuffle(idxsStream2)
-        idxsStream2= idxsStream2[:numWordsInStream]  #take the first numWordsInStream of the shuffled list
-        print("idxsStream1",idxsStream1)
-        print("idxsStream2",idxsStream2)
+    #assumes at least as many items in stimList as in stream
+    print("lenStimFileList",len(stimFileList))  #this
+    idxsIntoStimList = range(len(stimFileList)) #create a list of indexes of the entire stim list: 0,1,2,3,4,5,...23
+    print("idxsInto",idxsIntoStimList)
+    #if not readFromFile: #just create a shuffled index of all the possibilities
+    np.random.shuffle(idxsIntoStimList) #0,1,2,3,4,5,... -> randomly permuted 3,2,5,...
+    print("idxsIntoStimList",idxsIntoStimList)
+    idxsStream1 = copy.deepcopy(idxsIntoStimList) #first RSVP stream
+    idxsStream1= idxsStream1[:numStimInStream] #take the first numStimInStream of the shuffled list
+    idxsStream2 = copy.deepcopy(idxsIntoStimList)  #make a copy for the right stream, and permute them on the next list
+    np.random.shuffle(idxsStream2)
+    idxsStream2= idxsStream2[:numStimInStream]  #take the first numStimInStream of the shuffled list
+    print("idxsStream1",idxsStream1)
+    print("idxsStream2",idxsStream2)
     return idxsStream1, idxsStream2
     
-textStimuliStream1 = list()
-textStimuliStream2 = list() #used for second, simultaneous RSVP stream
-def calcAndPredrawStimuli(wordList,cues, preCues,thisTrial): #Called before each trial 
-    #textStimuliStream1 and 2 assumed to be global variables
-    if len(wordList) < numWordsInStream:
-        print('Error! Your word list must have at least ',numWordsInStream,'strings')
+stimuliStream1 = list()
+stimuliStream2 = list() #used for second, simultaneous RSVP stream
+def calcAndPredrawStimuli(fileList,cues, preCues,thisTrial): #Called before each trial
+    #stimuliStream1 and 2 assumed to be global variables
+    stimImagesPath = 'images/'
+    if len(fileList) < numStimInStream:
+        print('Error! Your stim list must have at least ',numStimInStream,'stimuli')
     #print('wordList=',wordList)
-    textStimuliStream1[:] = [] #Delete all items in the list
-    textStimuliStream2[:] = [] #Delete all items in the list
+    stimuliStream1[:] = [] #Delete all items in the list
+    stimuliStream2[:] = [] #Delete all items in the list
     for i in xrange( len(cues) ):
         eccentricity = thisTrial['wordEccentricity']
         if eccentricity < 2:  #kludge to deal with very low separation case where want just one cue - draw them both in the same place
@@ -403,17 +348,20 @@ def calcAndPredrawStimuli(wordList,cues, preCues,thisTrial): #Called before each
         else:  
             cues[i].setPos( [eccentricity, 0] )
             preCues[i].setPos( [eccentricity, 0] )
-    for i in range(0,len(wordList)): #draw all the words. Later, the seq will indicate which one to present on each frame. The seq might be shorter than the wordList
-       word = wordList[ i ]
-       #flipHoriz, flipVert  textStim http://www.psychopy.org/api/visual/textstim.html
-       #Create one bucket of words for the left stream
-       textStimulusStream1 = visual.TextStim(myWin,text=word,height=ltrHeight,colorSpace='rgb',color=letterColor,alignHoriz='center',alignVert='center',units='deg',autoLog=autoLogging) 
-       #Create a bucket of words for the right stream
-       textStimulusStream2 = visual.TextStim(myWin,text=word,height=ltrHeight,colorSpace='rgb',color=letterColor,alignHoriz='center',alignVert='center',units='deg',autoLog=autoLogging)
-       textStimulusStream1.setPos([-thisTrial['wordEccentricity'],0]) #left
-       textStimuliStream1.append(textStimulusStream1) #add to list of text stimuli that comprise  stream 1
-       textStimulusStream2.setPos([thisTrial['wordEccentricity'],0]) #right
-       textStimuliStream2.append(textStimulusStream2)  #add to list of text stimuli that comprise stream 2
+    for i in range(0,len(fileList)): #draw all the stimuli. Later, the seq will indicate which one to present on each frame. The seq might be shorter than the stimuliStream
+       fileName = fileList[ i ]
+       fileName = stimImagesPath + fileName + stimFileSuffix
+       print('fileName=',fileName)
+       #Create one bucket of stimuli for the left stream
+       stimulusStream1 = visual.ImageStim(myWin, image=fileName, mask=None, size=None,  # will be the size of the original image in pixels
+                                                                    units='deg', interpolate=True, autoLog=autoLogging) #ltrHeight
+       #Create a bucket of stimuli for the right stream
+       stimulusStream2 = visual.ImageStim(myWin, image=fileName, mask=None, size=None,  # will be the size of the original image in pixels
+                                                                    units='deg', interpolate=True, autoLog=autoLogging) #ltrHeight
+       stimulusStream1.setPos([-thisTrial['wordEccentricity'],0]) #left
+       stimuliStream1.append(stimulusStream1) #add to list of text stimuli that comprise  stream 1
+       stimulusStream2.setPos([thisTrial['wordEccentricity'],0]) #right
+       stimuliStream2.append(stimulusStream2)  #add to list of text stimuli that comprise stream 2
     
     #Use these buckets by pulling out the drawn words in the order you want them. For now, just create the order you want.
     idxsStream1, idxsStream2 = calcSequenceForThisTrial()
@@ -518,10 +466,10 @@ print('seq1\tseq2\t',end='', file=dataFile) #assuming 2 streams
 print('timingBlips',file=dataFile)
 #end of header
 
-def  oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames,ISIframes,thisTrial,textStimuliStream1,textStimuliStream2,
+def  oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames,ISIframes,thisTrial,stimuliStream1,stimuliStream2,
                                        noise,proportnNoise,allFieldCoords,numNoiseDots ): 
 #defining a function to draw each frame of stim.
-#seq1 is an array of indices corresponding to the appropriate pre-drawn stimulus, contained in textStimuli
+#seq1 is an array of indices corresponding to the appropriate pre-drawn stimulus, contained in stimuliStream
   SOAframes = letterDurFrames+ISIframes
   cueFrames = cuesSerialPos*SOAframes
   stimN = int( np.floor(n/SOAframes) )
@@ -542,15 +490,15 @@ def  oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames
          cues[i].setLineColor( cueColor )
 
   if showLetter:
-    textStimuliStream1[thisStimIdx].setColor( letterColor )
-    textStimuliStream2[thisStim2Idx].setColor( letterColor )
+    stimuliStream1[thisStimIdx].setColor( letterColor )
+    stimuliStream2[thisStim2Idx].setColor( letterColor )
   else: 
-    textStimuliStream1[thisStimIdx].setColor( bgColor )
-    textStimuliStream2[thisStim2Idx].setColor( bgColor )
-  textStimuliStream1[thisStimIdx].flipHoriz = thisTrial['leftStreamFlip']
-  textStimuliStream2[thisStim2Idx].flipHoriz = thisTrial['rightStreamFlip']
-  textStimuliStream1[thisStimIdx].draw()
-  textStimuliStream2[thisStim2Idx].draw()
+    stimuliStream1[thisStimIdx].setColor( bgColor )
+    stimuliStream2[thisStim2Idx].setColor( bgColor )
+  stimuliStream1[thisStimIdx].flipHoriz = thisTrial['leftStreamFlip']
+  stimuliStream2[thisStim2Idx].flipHoriz = thisTrial['rightStreamFlip']
+  stimuliStream1[thisStimIdx].draw()
+  stimuliStream2[thisStim2Idx].draw()
   for cue in cues:
     cue.draw() #will be drawn in backgruond color if it's not time for that
   refreshNoise = False #Not recommended because takes longer than a frame, even to shuffle apparently. Or may be setXYs step
@@ -679,7 +627,7 @@ def do_RSVP_stim(thisTrial, cues, preCues, seq1, seq2, proportnNoise,trialN):
     t0 = trialClock.getTime()
 
     for n in range(trialDurFrames): #this is the loop for this trial's stimulus!
-        worked = oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames,ISIframes,thisTrial,textStimuliStream1,textStimuliStream2,
+        worked = oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames,ISIframes,thisTrial,stimuliStream1,stimuliStream2,
                                                      noise,proportnNoise,allFieldCoords,numNoiseDots ) #draw letter and possibly cue and noise on top
         if thisTrial['wordEccentricity'] > 2:  #kludge to avoid drawing fixation in super-near condition for Cheryl
             fixationPoint.draw()
@@ -889,7 +837,7 @@ if doStaircase:
                 print('stopping because staircase.next() returned a StopIteration, which it does when it is finished')
                 break #break out of the trials loop
         #print('staircaseTrialN=',staircaseTrialN)
-        idxsStream1, idxsStream2, cues, preCues = calcAndPredrawStimuli(wordList,cues,preCues, staircaseTrials)
+        idxsStream1, idxsStream2, cues, preCues = calcAndPredrawStimuli(stimFileList,cues,preCues, staircaseTrials)
         cuesSerialPos,correctAnswerIdxsStream1,correctAnswerIdxsStream2, ts  = \
                                         do_RSVP_stim(thisTrial, cues, preCues, idxsStream1, idxsStream2, noisePercent/100.,staircaseTrialN)
         numCasesInterframeLong = timingCheckAndLog(ts,staircaseTrialN)
@@ -962,7 +910,7 @@ else: #not staircase
             logging.info(msg); print(msg)
             instructions()
         thisTrial = trials.next() #get a proper (non-staircase) trial
-        sequenceStream1, sequenceStream2, cues, preCues = calcAndPredrawStimuli(wordList,cues,preCues, thisTrial)
+        sequenceStream1, sequenceStream2, cues, preCues = calcAndPredrawStimuli(stimFileList,cues,preCues, thisTrial)
         print('sequenceStream1=',sequenceStream1)
         print('sequenceStream2=',sequenceStream2)
         myWin.setMouseVisible(False)
