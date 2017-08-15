@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Demo of ImageStim and GratingStim with image contents.
+Testing drawing of Chinese characters
 """
 
 from __future__ import division

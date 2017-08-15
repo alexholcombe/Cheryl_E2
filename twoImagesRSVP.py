@@ -54,8 +54,9 @@ prefaceStaircaseNoise = np.array([5,20,20,20, 50,50,50,5,80,80,80,5,95,95,95]) #
 descendingPsycho = True #psychometric function- more noise means worse performance
 threshCriterion = 0.58
 
-numStimInStream = 2 #Experiment will only work if all 26 letters are presented, otherwise error when you pick a letter that was not presented
-stimFileList = ['1','2']
+numStimInStream = 26 #Experiment will only work if all 26 letters are presented, otherwise error when you pick a letter that was not presented
+stimFileList =  [str(i+1) for i in range(numStimInStream) ]   # ['1','2', ...]
+stimFileLeftPrefix = 'left'; stimFileRightPrefix = 'right' #for left and right streams
 stimFileSuffix = '.png'
 if len(stimFileList) > numStimInStream:
     print("WARNING: you have asked for streams that have more stimuli than are in the stimFileList, so some will be duplicated")
@@ -349,13 +350,13 @@ def calcAndPredrawStimuli(fileList,cues, preCues,thisTrial): #Called before each
             cues[i].setPos( [eccentricity, 0] )
             preCues[i].setPos( [eccentricity, 0] )
     for i in range(0,len(fileList)): #draw all the stimuli. Later, the seq will indicate which one to present on each frame. The seq might be shorter than the stimuliStream
-       fileName = fileList[ i ]
-       fileName = stimImagesPath + fileName + stimFileSuffix
+       fileName = stimImagesPath + stimFileLeftPrefix + fileList[i] + stimFileSuffix
        print('fileName=',fileName)
        #Create one bucket of stimuli for the left stream
        stimulusStream1 = visual.ImageStim(myWin, image=fileName, mask=None, size=None,  # will be the size of the original image in pixels
                                                                     units='deg', interpolate=True, autoLog=autoLogging) #ltrHeight
        #Create a bucket of stimuli for the right stream
+       fileName = stimImagesPath + stimFileRightPrefix + fileList[i] + stimFileSuffix
        stimulusStream2 = visual.ImageStim(myWin, image=fileName, mask=None, size=None,  # will be the size of the original image in pixels
                                                                     units='deg', interpolate=True, autoLog=autoLogging) #ltrHeight
        stimulusStream1.setPos([-thisTrial['wordEccentricity'],0]) #left
