@@ -1,1 +1,0 @@
-experimentPhase	trialnum	subject	task	noisePercent	leftStreamFlip	rightStreamFlip	rightResponseFirst	probe	answer0	response0	correct0	answer1	response1	correct1	timingBlips
