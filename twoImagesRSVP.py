@@ -18,7 +18,7 @@ except ImportError:
     print('Could not import stringResponse.py (you need that file to be in the same directory)')
     
 try:
-    import letterLineupResponse
+    import imagesOrLtrsLineupResponse
 except ImportError:
     print('Could not import letterLineupResponse.py (you need that file to be in the same directory)')
 
@@ -843,7 +843,7 @@ if doStaircase:
                                         do_RSVP_stim(thisTrial, cues, preCues, idxsStream1, idxsStream2, noisePercent/100.,staircaseTrialN)
         numCasesInterframeLong = timingCheckAndLog(ts,staircaseTrialN)
         expStop,passThisTrial,responses,buttons,responsesAutopilot = \
-                letterLineupResponse.doLineup(myWin,bgColor,myMouse,clickSound,badKeySound,possibleResps,showBothSides,sideFirstLeftRightCentral,autopilot) #CAN'T YET HANDLE MORE THAN 2 LINEUPS
+                imagesOrLtrsLineupResponse.doLineup(myWin,False,bgColor,myMouse,clickSound,badKeySound,possibleResps,showBothSides,sideFirstLeftRightCentral,autopilot) #CAN'T YET HANDLE MORE THAN 2 LINEUPS
 
         if not expStop:
             if mainStaircaseGoing:
@@ -934,7 +934,7 @@ else: #not staircase
                 #responseOrder.reverse()  #this is necessary if using text input rather than lineup response
                 
         expStop,passThisTrial,responses,buttons,responsesAutopilot = \
-              letterLineupResponse.doLineup(myWin,bgColor,myMouse,clickSound,badKeySound,possibleResps,showBothSides,sideFirstLeftRightCentral,autopilot) #CAN'T YET HANDLE MORE THAN 2 LINEUPS
+              imagesOrLtrsLineupResponse.doLineup(myWin,False,bgColor,myMouse,clickSound,badKeySound,possibleResps,showBothSides,sideFirstLeftRightCentral,autopilot) #CAN'T YET HANDLE MORE THAN 2 LINEUPS
         expStop = np.array(expStop).any(); passThisTrial = np.array(passThisTrial).any()
         if not expStop:
             print('main\t', end='', file=dataFile) #first thing printed on each line of dataFile to indicate main part of experiment, not staircase
@@ -953,9 +953,10 @@ else: #not staircase
                 else: 
                     if i==0:
                         sequenceStream = sequenceStream1; correctAnswerIdxs = correctAnswerIdxsStream1; 
-                    else: sequenceStream = sequenceStream2; correctAnswerIdxs = correctAnswerIdxsStream2; 
+                    else: sequenceStream = sequenceStream2; correctAnswerIdxs = correctAnswerIdxsStream2;
+                print('correctAnswerIdxs = ', correctAnswerIdxs)
                 correct,approxCorrect,responsePosRelative = (
-                handleAndScoreResponse(passThisTrial,responses[i],responsesAutopilot,task,sequenceStream,thisTrial['cueSerialPos'],correctAnswerIdxs[i] ) )
+                            handleAndScoreResponse(passThisTrial,responses[i],responsesAutopilot,task,sequenceStream,thisTrial['cueSerialPos'],correctAnswerIdxs[i] ) )
                 eachCorrect[i] = correct
                 eachApproxCorrect[i] = approxCorrect
             #header then had seq1, seq2. Save them

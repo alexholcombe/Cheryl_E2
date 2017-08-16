@@ -58,7 +58,6 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
             boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y))
             boundingBox.draw()
             
-            
 def drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert,constCoord,lightness,drawBoundingBox):
     '''Draw possibleResps in position x with RGB lightness    
      constCoord is x if horizVert=1 (vertical), y if horizontal
@@ -148,7 +147,7 @@ def collectOneLineupResponseImage(myWin,bgColor,myMouse,drawBothSides,leftRightC
    expStop = False
    while state != 'finished' and not expStop:
         #draw everything corresponding to this state
-        drawResponseArrays(myWin,imagesOrLetters,bgColor,horizVert,xOffset,possibleResps,drawBothSides,leftRightCentral=leftRightCentral)
+        drawResponseArrays(myWin,False,bgColor,horizVert,xOffset,possibleResps,drawBothSides,leftRightCentral=leftRightCentral)
         if state == 'waitingForClick':
             #draw selected one in green, and bigly
             selectedColor = (-1,1,-1) #green
@@ -234,7 +233,7 @@ def collectOneLineupResponseImage(myWin,bgColor,myMouse,drawBothSides,leftRightC
                     expStop = True
                     #noResponseYet = False
    whichList = 1 if leftRightCentral else 0
-   response = possibleResps[whichList][whichResp]
+   response =  whichResp #index rather than actual graphics object, which is: possibleResps[whichList][whichResp]
    
    #Determine which button was pressed
    whichPressed = np.where(lastValidClickButtons)[0]
@@ -509,7 +508,9 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
     leftRightFirst = False
     expStop,passThisTrial,responses,buttons,responsesAutopilot = \
                 doLineup(myWin, imagesOrLetters, bgColor,myMouse, clickSound, badClickSound, possibleResps, bothSides, leftRightFirst, autopilot)
-
+#    if imagesOrLetters == 0: #in case of images need to convert back from visualStim.Image object to index: which of possible files it is
+#            indexFirstResponse = possibleResps[0].index(r)
+#            print('index = ',index, ' for response ', r)
     print('autopilot=',autopilot, 'responses=',responses)
     print('expStop=',expStop,' passThisTrial=',passThisTrial,' responses=',responses, ' responsesAutopilot =', responsesAutopilot)
     
