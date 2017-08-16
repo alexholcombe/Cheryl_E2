@@ -51,8 +51,8 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
             print('drawing to erase')
             boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y), fillColor=bgColor, lineColor=None, units='norm' ,autoLog=False) 
             boundingBox.draw()
-        option = visual.ImageStim(myWin, image=possibleResps[i], mask=None, size=sz,  # will be the size of the original image in pixels
-                                                                    units='norm', interpolate=True, autoLog=False) #ltrHeight
+        option = possibleResps[i]
+        option.size = sz
         option.pos = (x, y)
         option.draw()
         if drawBoundingBox:
@@ -86,19 +86,20 @@ def drawResponseArrays(myWin,imagesOrLetters,bgColor,horizVert,xOffset,possibleR
             lightnessLR = (1,dimRGB) #lightness on left and right sides
         elif leftRightCentral ==1:
             lightnessLR = (dimRGB,1) 
-        drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert, xOffset*-1, lightnessLR[0],drawBoundingBox) #one side
-        drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert, xOffset, lightnessLR[1],drawBoundingBox)  #otherSide
+        drawArray(myWin,imagesOrLetters,bgColor,possibleResps[0],horizVert, xOffset*-1, lightnessLR[0],drawBoundingBox) #one side
+        drawArray(myWin,imagesOrLetters,bgColor,possibleResps[1],horizVert, xOffset, lightnessLR[1],drawBoundingBox)  #otherSide
     else: #only draw one side
         lightness = 1
         x = xOffset if leftRightCentral==1 else -1*xOffset
         if leftRightCentral ==0:
             x = -1*xOffset
+            drawArray(myWin,imagesOrLetters,bgColor,possibleResps[0],horizVert, x, lightness,drawBoundingBox)
         elif leftRightCentral ==1:
             x = xOffset
-            lightnessLR = (dimRGB,1) 
+            drawArray(myWin,imagesOrLetters,bgColor,possibleResps[1],horizVert, x, lightness,drawBoundingBox)
         elif leftRightCentral==2:
             x = 0
-        drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert, x, lightness,drawBoundingBox)
+            drawArray(myWin,imagesOrLetters,bgColor,possibleResps[0],horizVert, x, lightness,drawBoundingBox)
 
 def checkForOKclick(mousePos,respZone):
     OK = False
@@ -302,6 +303,38 @@ def setupSoundsForResponse():
         
     return clickSound, badKeySound
 
+
+def getImages(numImages):
+    stimImagesPath = 'images/'
+    imagesLeft = []
+    imagesRight = []
+
+    stimFileList =  [str(i+1) for i in range(numImages) ]   # ['1','2', ...]
+    
+    stimFileLeftPrefix = 'left'; stimFileRightPrefix = 'right' #for left and right streams
+    stimFileSuffix = '.png'
+    
+    for i in xrange(numImages):
+        fileNameLeft = stimImagesPath + stimFileLeftPrefix + stimFileList[i] + stimFileSuffix
+        fileNameRight = stimImagesPath + stimFileRightPrefix + stimFileList[i] + stimFileSuffix
+        imageObjectLeft = visual.ImageStim(myWin, image=fileNameLeft, mask=None, size=None,  # will be the size of the original image in pixels
+                                                                    units='norm', interpolate=True, autoLog=False) #ltrHeight
+        imagesLeft.append(imageObjectLeft)
+        imageObjectRight = visual.ImageStim(myWin, image=fileNameRight, mask=None, size=None,  # will be the size of the original image in pixels
+                                                                    units='norm', interpolate=True, autoLog=False) #ltrHeight
+        imagesRight.append(imageObjectRight)
+        drawDebug = False
+        if drawDebug:
+            imageObjectLeft.draw()
+            myWin.flip()
+            
+    imageObjects = [ imagesLeft , imagesRight ]
+    print('len(imageObjects)  = ',len(imageObjects), " len(imageObjects[0]) =", len(imageObjects[0]))
+    print("transpose")
+    imageObjectsT = zip(*imageObjects)
+    print('len(imageObjectsT)  = ',len(imageObjectsT), " len(imageObjectsT[0]) =", len(imageObjectsT[0]))
+    return imageObjects
+    
 if __name__=='__main__':  #Running this file directly, must want to test functions in this file
     from psychopy import monitors
     monitorname = 'testmonitor'
@@ -315,9 +348,14 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
     autopilot = False
     clickSound, badClickSound = setupSoundsForResponse()
     
-    imagesOrLetters = True
-    alphabet = list(string.ascii_uppercase)
-    possibleResps = alphabet
+    imagesOrLetters = False
+    if imagesOrLetters:
+        alphabet = list(string.ascii_uppercase)
+        possibleResps = alphabet 
+    else:
+        numImages = 10
+        possibleResps = getImages(numImages)
+        
     #possibleResps.remove('C'); possibleResps.remove('V') #per Goodbourn & Holcombe, including backwards-ltrs experiments
     myWin.flip()
     passThisTrial = False
@@ -347,6 +385,5 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
 
     #print('autopilot=',autopilot, 'responses=',responses)
     #print('expStop=',expStop,' passThisTrial=',passThisTrial,' responses=',responses, ' responsesAutopilot =', responsesAutopilot)
-    
     
     print('Finished') 
