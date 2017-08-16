@@ -665,44 +665,26 @@ def handleAndScoreResponse(passThisTrial,response,responseAutopilot,task,stimSeq
     approxCorrect = 0
     posOfResponse = -999
     responsePosRelative = -999
-    idx = correctAnswerIdx
     print('correctAnswerIdx = ',correctAnswerIdx) 
-    correctAnswer = wordList[idx].upper()
-    responseString=response
-    responseString= responseString.upper()
-    #print('correctAnswer=',correctAnswer ,' responseString=',responseString)
-    if correctAnswer == responseString:
+    if correctAnswerIdx == response:
         correct = 1
-    #print('correct=',correct)
-    responseMustBeInWordList = True
-    if len(stimSequence) != len(wordList):
-        responseMustBeInWordList = False
-    #stimSeqAsLetters = list()
-    #for letter in stimSequence:
-    #    stimSeqAsLetters.append(  chr( ord('A') + letter ) )
-    #letterIdxOfAlphabet = ord(  responseString.upper() ) - ord( 'A')  
-    #print("Sending to responseWordIdx stimSequence=",stimSequence," responseString=",responseString, "stimSeqAsLetters=",stimSeqAsLetters, "responseMustBeInWordList=",responseMustBeInWordList)
-    responseWordIdx = wordToIdx(responseString.upper(),wordList, responseMustBeInWordList)
-    print('responseWordIdx = ', responseWordIdx, ' stimSequence=', stimSequence)
-    if responseWordIdx is None: #response is not in the wordList
-        posOfResponse = -999
-        logging.warn('Response was not present in the stimulus stream')
+    print('correct=',correct)
+ 
+    posOfResponse= np.where( np.array(stimSequence)==response ) #Assumes that the response was in the stimulus sequence
+    print("posOfResponse=",posOfResponse, "stimSequence=",stimSequence, "type(stimSequence)=",type(stimSequence))
+    posOfResponse= posOfResponse[0] #list with two entries, want first which will be array of places where the response was found in the sequence
+    if len(posOfResponse) > 1:
+        logging.error('Expected response to have occurred in only one position in stream')
+    elif len(posOfResponse) == 0:
+        logging.error('Expected response to have occurred somewhere in the stream')
+        raise ValueError('Expected response to have occurred somewhere in the stream')
     else:
-        posOfResponse= np.where( np.array(stimSequence)==responseWordIdx ) #Assumes that the response was in the stimulus sequence
-        print("posOfResponse=",posOfResponse, "responseWordIdx=",responseWordIdx,"stimSequence=",stimSequence, "type(stimSequence)=",type(stimSequence))
-        posOfResponse= posOfResponse[0] #list with two entries, want first which will be array of places where the response was found in the sequence
-        if len(posOfResponse) > 1:
-            logging.error('Expected response to have occurred in only one position in stream')
-        elif len(posOfResponse) == 0:
-            logging.error('Expected response to have occurred somewhere in the stream')
-            raise ValueError('Expected response to have occurred somewhere in the stream')
-        else:
-            posOfResponse = posOfResponse[0] #first element of list (should be only one element long 
-        responsePosRelative = posOfResponse - cueSerialPos
-        approxCorrect = abs(responsePosRelative)<= 3 #Vul efficacy measure of getting it right to within plus/minus
+        posOfResponse = posOfResponse[0] #first element of list (should be only one element long 
+    responsePosRelative = posOfResponse - cueSerialPos
+    approxCorrect = abs(responsePosRelative)<= 3 #Vul efficacy measure of getting it right to within plus/minus
     #print('wordToIdx(',responseString,',',wordList,')=',responseWordIdx,' stimSequence=',stimSequence,'\nposOfResponse = ',posOfResponse) #debugON
     #print response stuff to dataFile
-    print('correctAnswer=',correctAnswer,' correct=',correct, 'responsePosRelative=',responsePosRelative)
+    print('correctAnswerIdx=',correctAnswerIdx,' correct=',correct, 'responsePosRelative=',responsePosRelative)
     #header was answerPos0, answer0, response0, correct0, responsePosRelative0
     print(cueSerialPos,'\t', end='', file=dataFile)
     print(correctAnswer, '\t', end='', file=dataFile) #answer0
@@ -921,8 +903,7 @@ else: #not staircase
         numCasesInterframeLong = timingCheckAndLog(ts,nDoneMain)
         #call for each response
         myMouse = event.Mouse()
-        alphabet = list(string.ascii_lowercase)
-        possibleResps = alphabet #possibleResps.remove('C'); possibleResps.remove('V')
+        possibleResps = [stimuliStream1, stimuliStream2]
 
         expStop = list(); passThisTrial = list(); responses=list(); responsesAutopilot=list()
         dL = [None]*numRespsWanted #dummy list for null values
@@ -945,6 +926,7 @@ else: #not staircase
             print(thisTrial['rightResponseFirst'],'\t', end='', file=dataFile)
             i = 0
             eachCorrect = np.ones(numRespsWanted)*-999; eachApproxCorrect = np.ones(numRespsWanted)*-999
+            print('responses before scoring = ', responses) #debugON
             for i in range(numRespsWanted): #scored and printed to dataFile in left first, right second order even if collected in different order
                 if thisTrial['rightResponseFirst']:
                     if i==0:

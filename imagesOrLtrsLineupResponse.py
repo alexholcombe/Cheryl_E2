@@ -36,16 +36,18 @@ def drawRespOption(myWin,bgColor,constantCoord,horizVert,color,drawBoundingBox,r
         option.pos = (x, y)
         option.draw()
         if drawBoundingBox:
-            boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y))
+            boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y), fillColor=[1,-1,-1])
             boundingBox.draw()
 
 def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBoundingBox,relativeSize,possibleResps,i):
         #constantCoord is x if horizVert=1 (vertical), y if horizontal
         #relativeSize multiplied by standard size to get desired size
         coord, w, h = calcRespYandBoundingBox( possibleResps, horizVert, i )
-        sz = [w,h]
+        sz = [w,h*relativeSize]
         x = constantCoord if horizVert else coord
         y = coord if horizVert else constantCoord
+        print('w = ', w, ' h = ', h, 'x = ', x, ' y = ', y)
+
         if relativeSize != 1: #erase bounding box so erase old letter before drawing new differently-sized letter 
             boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y), fillColor=bgColor, lineColor=None, units='norm' ,autoLog=False) 
             boundingBox.draw()
@@ -55,7 +57,7 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
         option.color = color  
         option.draw()
         if drawBoundingBox:
-            boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y))
+            boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y), fillColor=[1,-1,-1])
             boundingBox.draw()
             
 def drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert,constCoord,lightness,drawBoundingBox):
@@ -64,10 +66,11 @@ def drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert,constCoord,l
     '''
     #print("lightness in drawArray=",lightness," x=",x)
     #Draw it vertically, from top to bottom
+    relativeSize = .5 #1
     for i in xrange(len(possibleResps)):
         if imagesOrLetters:
-            drawRespOption(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,1,possibleResps,i)
-        else:  drawRespOptionImage(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,1,possibleResps,i)
+            drawRespOption(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,relativeSize,possibleResps,i)
+        else:  drawRespOptionImage(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,relativeSize,possibleResps,i)
 
 def drawResponseArrays(myWin,imagesOrLetters,bgColor,horizVert,xOffset,possibleResps,bothSides,leftRightCentral):
     '''If bothSides, draw array on both sides, with one side dimmed
@@ -78,7 +81,7 @@ def drawResponseArrays(myWin,imagesOrLetters,bgColor,horizVert,xOffset,possibleR
     #print("leftRight=",leftRight, "xOffset=",xOffset)
     numResps = len(possibleResps)
     dimRGB = -.3
-    drawBoundingBox = False #to debug to visualise response regions, make True
+    drawBoundingBox = True #to debug to visualise response regions, make True
     if bothSides:
         if leftRightCentral == 0:
             lightnessLR = (1,dimRGB) #lightness on left and right sides
@@ -378,6 +381,11 @@ def doLineup(myWin,imagesOrLetters,bgColor,myMouse,clickSound,badClickSound,poss
             leftRightCentral = 2
         else:
             print("unrecognized leftRightCentral value")
+    if imagesOrLetters==0: #make sure all the images are rendered in norm units rather than deg or pixels. Because norm is what's good for arraying across whole screen.
+        for i in xrange(len(possibleResps)):
+            for r in possibleResps[i]:
+                r.units = 'norm'
+
     expStop = False
     passThisTrial = False
     responsesAutopilot = []
@@ -448,10 +456,10 @@ def getImages(numImages):
         fileNameLeft = stimImagesPath + stimFileLeftPrefix + stimFileList[i] + stimFileSuffix
         fileNameRight = stimImagesPath + stimFileRightPrefix + stimFileList[i] + stimFileSuffix
         imageObjectLeft = visual.ImageStim(myWin, image=fileNameLeft, mask=None, size=None,  # will be the size of the original image in pixels
-                                                                    units='norm', interpolate=True, autoLog=False) #ltrHeight
+                                                                    units='norm', interpolate=True, autoLog=False) 
         imagesLeft.append(imageObjectLeft)
         imageObjectRight = visual.ImageStim(myWin, image=fileNameRight, mask=None, size=None,  # will be the size of the original image in pixels
-                                                                    units='norm', interpolate=True, autoLog=False) #ltrHeight
+                                                                    units='norm', interpolate=True, autoLog=False) 
         imagesRight.append(imageObjectRight)
         drawDebug = False
         if drawDebug:
@@ -467,7 +475,7 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
     mon = monitors.Monitor(monitorname,width=40.5, distance=57)
     windowUnits = 'deg' #purely to make sure lineup array still works when windowUnits are something different from norm units
     bgColor = [-.7,-.7,-.7] 
-    myWin = visual.Window(monitor=mon,colorSpace='rgb',color=bgColor,units=windowUnits)
+    myWin = visual.Window(monitor=mon,colorSpace='rgb',fullscr = True, color=bgColor,units=windowUnits)
     #myWin = visual.Window(monitor=mon,size=(widthPix,heightPix),allowGUI=allowGUI,units=units,color=bgColor,colorSpace='rgb',fullscr=fullscr,screen=scrn,waitBlanking=waitBlank) #Holcombe lab monitor
 
     logging.console.setLevel(logging.WARNING)
@@ -505,12 +513,10 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
     expStop = False
     
     bothSides = True
-    leftRightFirst = False
+    leftRightFirst = True
     expStop,passThisTrial,responses,buttons,responsesAutopilot = \
                 doLineup(myWin, imagesOrLetters, bgColor,myMouse, clickSound, badClickSound, possibleResps, bothSides, leftRightFirst, autopilot)
-#    if imagesOrLetters == 0: #in case of images need to convert back from visualStim.Image object to index: which of possible files it is
-#            indexFirstResponse = possibleResps[0].index(r)
-#            print('index = ',index, ' for response ', r)
+
     print('autopilot=',autopilot, 'responses=',responses)
     print('expStop=',expStop,' passThisTrial=',passThisTrial,' responses=',responses, ' responsesAutopilot =', responsesAutopilot)
     
