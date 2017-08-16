@@ -7,10 +7,12 @@ from math import floor
 from copy import deepcopy
 
 def calcRespYandBoundingBox(possibleResps, horizVert, i):
-    spacingCtrToCtr = 2.0 / len(possibleResps)
+    screenTop = 1; screenBtm = -1 #norm units
+    screenTop *=.93; screenBtm *= .93 #works standalone without this, but when integrated with RSVP the first image is offscreen
+    spacingCtrToCtr = (screenTop - screenBtm) / len(possibleResps)
     charHeight = spacingCtrToCtr
     #coordinate will be interpreted as y if horizVert, x otherwise
-    startCoordinate = 1-charHeight/2 #top , to bottom
+    startCoordinate = screenTop-charHeight/2 #top , to bottom
     if horizVert==0:
         startCoordinate*= -1 #left to right
     increment = i*spacingCtrToCtr
@@ -46,7 +48,7 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
         sz = [w,h*relativeSize]
         x = constantCoord if horizVert else coord
         y = coord if horizVert else constantCoord
-        print('w = ', w, ' h = ', h, 'x = ', x, ' y = ', y)
+        #print('w = ', w, ' h = ', h, 'x = ', x, ' y = ', y) #debugOff
 
         if relativeSize != 1: #erase bounding box so erase old letter before drawing new differently-sized letter 
             boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y), fillColor=bgColor, lineColor=None, units='norm' ,autoLog=False) 
@@ -66,8 +68,8 @@ def drawArray(myWin,imagesOrLetters,bgColor,possibleResps,horizVert,constCoord,l
     '''
     #print("lightness in drawArray=",lightness," x=",x)
     #Draw it vertically, from top to bottom
-    relativeSize = .5 #1
-    for i in xrange(len(possibleResps)):
+    relativeSize = .9 #1 can mean there is close to zero vertical space between images
+    for i in xrange(len(possibleResps)): #[0] for debugging
         if imagesOrLetters:
             drawRespOption(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,relativeSize,possibleResps,i)
         else:  drawRespOptionImage(myWin,bgColor,constCoord,horizVert,(lightness,lightness,lightness),drawBoundingBox,relativeSize,possibleResps,i)
@@ -81,7 +83,7 @@ def drawResponseArrays(myWin,imagesOrLetters,bgColor,horizVert,xOffset,possibleR
     #print("leftRight=",leftRight, "xOffset=",xOffset)
     numResps = len(possibleResps)
     dimRGB = -.3
-    drawBoundingBox = True #to debug to visualise response regions, make True
+    drawBoundingBox = False #to debug to visualise response regions, make True
     if bothSides:
         if leftRightCentral == 0:
             lightnessLR = (1,dimRGB) #lightness on left and right sides
