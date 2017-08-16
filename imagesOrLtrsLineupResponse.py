@@ -54,6 +54,7 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
         option = possibleResps[i]
         option.size = sz
         option.pos = (x, y)
+        option.color = color  
         option.draw()
         if drawBoundingBox:
             boundingBox = visual.Rect(myWin,width=w,height=h, pos=(x,y))
@@ -124,7 +125,7 @@ def convertXYtoNormUnits(XY,currUnits,win):
             #print("Converted ",XY," from ",currUnits," units first to pixels: ",xPix,yPix," then to norm: ",xNorm,yNorm)
     return xNorm, yNorm
 
-def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides,leftRightCentral,OKtextStim,OKrespZone,possibleResps,xOffset,clickSound,badClickSound):
+def collectOneLineupResponseImage(myWin,bgColor,myMouse,drawBothSides,leftRightCentral,OKtextStim,OKrespZone,possibleResps,xOffset,clickSound,badClickSound):
    if leftRightCentral == 0: #left
         constCoord = -1*xOffset
         horizVert = 1 #vertical
@@ -141,13 +142,7 @@ def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides
    sideIndicator = visual.Rect(myWin, width=.14, height=.04, fillColor=(1,1,1), fillColorSpace='rgb', lineColor=None, units='norm', autoLog=False)
    sideIndicatorCoord = .77*constCoord
    sideIndicator.setPos( [sideIndicatorCoord, 0] )
-   chosenLtr = visual.TextStim(myWin,colorSpace='rgb',color=(1,1,1),alignHoriz='center', alignVert='center',height=.4,units='norm',autoLog=False)
-   if horizVert: #vertical array
-    chosenLtr.setPos( [sideIndicatorCoord,0] )  #big drawing of chosen letter, offset from lineup
-   else: #horizontal array
-    sideIndicatorCoord = -.3
-    chosenLtr.setPos( [0,sideIndicatorCoord] )  #big drawing of chosen letter, offset from lineup
-   
+    
    whichResp = -1
    state = 'waitingForFirstClick' 
    #waitingForClick means OK is on the screen, so can either click a lineup item, or click OK
@@ -162,12 +157,20 @@ def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides
             buttonThis = np.where(pressed)[0] #assume only one button can be recorded as pressed
             if buttonThis == 0:
                 selectedColor = (1,1,-1) #yellow for low confidence,
-            if imagesOrLetters:
-                drawRespOption(myWin,bgColor,constCoord,horizVert,selectedColor,False,1.5,possibleResps,whichResp)
-            else: drawRespOptionImage(myWin,bgColor,constCoord,horizVert,selectedColor,False,1.5,possibleResps,whichResp)
-            chosenLtr.setText(possibleResps[whichResp])
-            chosenLtr.setColor( selectedColor )
-            chosenLtr.draw()
+            whichList = leftRightCentral
+            if leftRightCentral ==2:
+                whichList = 0
+            drawRespOptionImage(myWin,bgColor,constCoord,horizVert,selectedColor,False,1.5,possibleResps[whichList],whichResp) #redraw in selection color to indicate it's been selected
+            #draw chosen image large, offset
+            #don't think this can be done with an image by changing its position because would have to be drawn in two places at once
+            chosenImageBig = possibleResps[whichList][whichResp]
+            chosenImageBig.size *= 2  #try to get this to work later
+            #chosenImageBig.color =  selectedColor 
+            pos = chosenImageBig.pos
+            if not horizVert: sideIndicatorCoord = -.3
+            chosenImageBig.pos = [ sideIndicatorCoord, pos[1] ]
+            chosenImageBig.draw()
+
             OKrespZone.draw()
             OKtextStim.draw()
         else:
@@ -193,10 +196,10 @@ def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides
                 if OK:
                     state = 'finished'
             if not OK: #didn't click OK. Check whether clicked near response array item
-                topmostCoord, topmostW, topmostH =  calcRespYandBoundingBox( possibleResps, horizVert, 0) #determine bounds of adjacent option
+                topmostCoord, topmostW, topmostH =  calcRespYandBoundingBox( possibleResps[0], horizVert, 0) #determine bounds of adjacent option
                 topmostX = constCoord if horizVert else topmostCoord
                 topmostY = topmostCoord if horizVert else constCoord
-                btmmostCoord, btmmostW, btmmostH =  calcRespYandBoundingBox(possibleResps,horizVert, len(possibleResps)-1)
+                btmmostCoord, btmmostW, btmmostH =  calcRespYandBoundingBox(possibleResps[0],horizVert, len(possibleResps[0])-1)
                 btmmostX = constCoord if horizVert else btmmostCoord
                 btmmostY = btmmostCoord if horizVert else constCoord
                 w = topmostW
@@ -217,7 +220,7 @@ def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides
                         if horizVert: #vertical
                             whichResp = int (relToBtm / h)
                             #change from relToBtm to relative to top
-                            whichResp = len(possibleResps) - 1- whichResp 
+                            whichResp = len(possibleResps[0]) - 1- whichResp 
                         else: #horizontal
                             whichResp = int(relToLeft / w)
                             #print("whichResp from left hopefully = ",whichResp, " corresponding to ", possibleResps[whichResp])
@@ -232,7 +235,8 @@ def collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,drawBothSides
                 if key in ['ESCAPE']:
                     expStop = True
                     #noResponseYet = False
-   response = possibleResps[whichResp]
+   whichList = 1 if leftRightCentral else 0
+   response = possibleResps[whichList][whichResp]
    
    #Determine which button was pressed
    whichPressed = np.where(lastValidClickButtons)[0]
@@ -269,8 +273,12 @@ def doLineup(myWin,imagesOrLetters,bgColor,myMouse,clickSound,badClickSound,poss
         OKrespZone = visual.GratingStim(myWin, tex="sin", mask="gauss", texRes=64, units='norm', size=[.5, .5], sf=[0, 0], name='OKrespZone')
         OKtextStim = visual.TextStim(myWin,pos=(0, 0),colorSpace='rgb',color=(-1,-1,-1),alignHoriz='center', alignVert='center',height=.13,units='norm',autoLog=False)
         OKtextStim.setText('OK')
-        whichResp0, whichButtonResp0, expStop = \
-                collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,bothSides,leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
+        if imagesOrLetters:
+            whichResp0, whichButtonResp0, expStop = \
+                    collectOneLineupResponse(myWin,bgColor,myMouse,bothSides,leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
+        else:
+            whichResp0, whichButtonResp0, expStop = \
+                    collectOneLineupResponseImage(myWin,bgColor,myMouse,bothSides,leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
         responses.append(whichResp0)
         buttons.append(whichButtonResp0)
     if not expStop and bothSides:
@@ -278,8 +286,12 @@ def doLineup(myWin,imagesOrLetters,bgColor,myMouse,clickSound,badClickSound,poss
             responsesAutopilot.append('Z')
         else:
             #Draw arrays again, with that one dim, to collect the other response
-            whichResp1, whichButtonResp1, expStop =  \
-                collectOneLineupResponse(myWin,imagesOrLetters,bgColor,myMouse,bothSides,not leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
+            if imagesOrLetters:
+                whichResp1, whichButtonResp1, expStop =  \
+                    collectOneLineupResponse(myWin,bgColor,myMouse,bothSides,not leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
+            else:
+                whichResp1, whichButtonResp1, expStop =  \
+                    collectOneLineupResponseImage(myWin,bgColor,myMouse,bothSides,not leftRightCentral,OKtextStim,OKrespZone,possibleResps, xOffset, clickSound, badClickSound)
             responses.append(whichResp1)
             buttons.append(whichButtonResp0)
     return expStop,passThisTrial,responses,buttons,responsesAutopilot
@@ -353,7 +365,7 @@ if __name__=='__main__':  #Running this file directly, must want to test functio
         alphabet = list(string.ascii_uppercase)
         possibleResps = alphabet 
     else:
-        numImages = 10
+        numImages = 26
         possibleResps = getImages(numImages)
         
     #possibleResps.remove('C'); possibleResps.remove('V') #per Goodbourn & Holcombe, including backwards-ltrs experiments

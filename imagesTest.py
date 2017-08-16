@@ -46,12 +46,15 @@ while not ( 'escape' in keys or 'space' in keys ):
     image2.draw()
     pos = image2.pos
     image2.pos = [pos[0]+addend,pos[1]]
+    
     image2ALPHA.phase += 0.01  # advance phase by 1/100th of a cycle
     image2ALPHA.draw()
+    
     pos = image1.pos
     image1.draw()
     image1.pos= [ pos[0]+addend, pos[1]]
-
+    image1.color = [.0, 1.0, -1.0]
+    
     # update fps once per second
     if t - lastFPSupdate > 1.0:
         lastFPS = win.fps()
