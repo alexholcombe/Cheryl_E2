@@ -120,8 +120,7 @@ if quitFinder:
     shellCmd = 'osascript -e '+applescript
     os.system(shellCmd)
 
-#letter size 2.5 deg
-SOAms = 100 # 133 #Battelli, Agosta, Goodbourn, Holcombe mostly using 133
+SOAms =  250 #100 # 133 #Battelli, Agosta, Goodbourn, Holcombe mostly using 133
 #Minimum SOAms should be 84  because any shorter, I can't always notice the second ring when lag1.   71 in Martini E2 and E1b (actually he used 66.6 but that's because he had a crazy refresh rate of 90 Hz)
 letterDurMs = 80 #23.6  in Martini E2 and E1b (actually he used 22.2 but that's because he had a crazy refresh rate of 90 Hz)
 
@@ -360,7 +359,12 @@ def calcAndPredrawStimuli(fileList,cues, preCues,thisTrial): #Called before each
        stimulusStream2 = visual.ImageStim(myWin, image=fileName, mask=None, size=None,  # will be the size of the original image in pixels
                                                                     units='deg', interpolate=True, autoLog=autoLogging) #ltrHeight
        stimulusStream1.setPos([-thisTrial['wordEccentricity'],0]) #left
+       scaleImageBy = 0.30
+       sz = stimulusStream1.size
+       stimulusStream1.setSize([ scaleImageBy * sz[0], scaleImageBy*sz[1] ])
        stimuliStream1.append(stimulusStream1) #add to list of text stimuli that comprise  stream 1
+       sz = stimulusStream2.size
+       stimulusStream2.setSize([ scaleImageBy * sz[0], scaleImageBy*sz[1] ])
        stimulusStream2.setPos([thisTrial['wordEccentricity'],0]) #right
        stimuliStream2.append(stimulusStream2)  #add to list of text stimuli that comprise stream 2
     
@@ -453,7 +457,7 @@ def wordToIdx(word,wordList, responseMustBeInWordList):
         
 #print header for data file
 print('experimentPhase\ttrialnum\tsubject\ttask\t',file=dataFile,end='')
-print('noisePercent\tleftStreamFlip\trightStreamFlip\t',end='',file=dataFile)
+print('noisePercent\twordEccentricity\tleftStreamFlip\trightStreamFlip\t',end='',file=dataFile)
 if task=='T1':
     numRespsWanted = 2
 dataFile.write('rightResponseFirst\t')
@@ -687,8 +691,8 @@ def handleAndScoreResponse(passThisTrial,response,responseAutopilot,task,stimSeq
     print('correctAnswerIdx=',correctAnswerIdx,' correct=',correct, 'responsePosRelative=',responsePosRelative)
     #header was answerPos0, answer0, response0, correct0, responsePosRelative0
     print(cueSerialPos,'\t', end='', file=dataFile)
-    print(correctAnswer, '\t', end='', file=dataFile) #answer0
-    print(responseString, '\t', end='', file=dataFile) #response0
+    print(correctAnswerIdx, '\t', end='', file=dataFile) #answer0
+    print(response, '\t', end='', file=dataFile) #response0
     print(correct, '\t', end='',file=dataFile)   #correct0
     print(responsePosRelative, '\t', end='',file=dataFile) #responsePosRelative0
 
@@ -920,7 +924,7 @@ else: #not staircase
         if not expStop:
             print('main\t', end='', file=dataFile) #first thing printed on each line of dataFile to indicate main part of experiment, not staircase
             print(nDoneMain,'\t', end='', file=dataFile)
-            print(subject,'\t',task,'\t', round(noisePercent,3),'\t', end='', file=dataFile)
+            print(subject,'\t',task,'\t', round(noisePercent,3),'\t', thisTrial['wordEccentricity'], '\t', end='', file=dataFile)
             print(thisTrial['leftStreamFlip'],'\t', end='', file=dataFile)
             print(thisTrial['rightStreamFlip'],'\t', end='', file=dataFile)
             print(thisTrial['rightResponseFirst'],'\t', end='', file=dataFile)

@@ -8,7 +8,7 @@ from copy import deepcopy
 
 def calcRespYandBoundingBox(possibleResps, horizVert, i):
     screenTop = 1; screenBtm = -1 #norm units
-    screenTop *=.93; screenBtm *= .93 #works standalone without this, but when integrated with RSVP the first image is offscreen
+    screenTop *=.99; screenBtm *= .99 #works standalone without this, but when integrated with RSVP the first image is offscreen
     spacingCtrToCtr = (screenTop - screenBtm) / len(possibleResps)
     charHeight = spacingCtrToCtr
     #coordinate will be interpreted as y if horizVert, x otherwise
@@ -45,7 +45,7 @@ def drawRespOptionImage(myWin,bgColor,constantCoord,horizVert,color,drawBounding
         #constantCoord is x if horizVert=1 (vertical), y if horizontal
         #relativeSize multiplied by standard size to get desired size
         coord, w, h = calcRespYandBoundingBox( possibleResps, horizVert, i )
-        sz = [w,h*relativeSize]
+        sz = [w*relativeSize,h*relativeSize]
         x = constantCoord if horizVert else coord
         y = coord if horizVert else constantCoord
         #print('w = ', w, ' h = ', h, 'x = ', x, ' y = ', y) #debugOff
