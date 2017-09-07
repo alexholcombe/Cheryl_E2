@@ -1,16 +1,27 @@
 
 # setwd("~/Desktop/Analysis/data")
 rawDataPath<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
-
+savePath<- file.path('dataPreprocessed')
+  
 turnRawPsychopyOutputIntoMeltedDataframe<- function(df) {
-  
-  
+  idColsMinimal<-colnames(df)[1:6] #->wordEccentricity
+  columnsToMelt<- colnames(df)[24:33]
+  #https://stackoverflow.com/questions/23945350/reshaping-wide-to-long-with-multiple-values-columns
+  dl<-reshape(df, direction='long', 
+              varying= columnsToMelt, 
+              timevar='side',
+              times=c('left', 'right'),
+              v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
+              idvar=idColsMinimal)
+  rownames(dl)<-NULL
+  return(dl)
 }
-df<-dfThis
 library(dplyr)
 
 dealWithRightResponseFirstMess<- function(df) {
   #cheryl WRITE SOMETHING TO EXPLAIN ALL THIS HERE
+  #left and right correct are not simple because column depends on rightResponseFirst
+  
   df<- mutate(df, answerLeft = ifelse(rightResponseFirst=="True", 
                                       yes = answer1,
                                       no = answer0) )
@@ -50,12 +61,11 @@ dealWithRightResponseFirstMess<- function(df) {
 }
 
 
-
-
 readInAllFiles<- function(rawDataPath) {
   
   files <- dir(path=rawDataPath,pattern='.txt')  #find all data files in this directory
   dfAll<-data.frame()
+  
   for (i in 1:length(files)) { #read in each file
     fileThis<- file.path(rawDataPath,files[i])
 
@@ -76,8 +86,11 @@ readInAllFiles<- function(rawDataPath) {
 
     
     rawData$file <- files[i]
-
-    dfThis<- rawData
+    
+    #left and right correct are not simple because column depends on rightResponseFirst
+    dfThis<- dealWithRightResponseFirstMess(rawData)
+    
+    dfThis<- turnRawPsychopyOutputIntoMeltedDataframe(dfThis)
 
     tryCatch(
       dfAll<-rbind(dfAll,dfThis), #if fail to bind new with old,
@@ -89,80 +102,8 @@ readInAllFiles<- function(rawDataPath) {
 }
 
 
-E<- readInAllFiles(rawDataPath)
-ee<- dealWithRightResponseFirstMess(E)
+dfAll<- readInAllFiles(rawDataPath)
 
-require(reshape2)
+saveRDS(dfAll, file=file.path(savePath,"E2melted.Rdata"))
 
-dw <- read.table(header=T, text='
- sbj f1.avg f1.sd f2.avg f2.sd  blabla
-                 A   10    6     50     10      bA
-                 B   12    5     70     11      bB
-                 C   20    7     20     8       bC
-                 D   22    8     22     9       bD
-                 ')
-reshape(dw, direction='long', 
-        varying=c('f1.avg', 'f1.sd', 'f2.avg', 'f2.sd'), 
-        timevar='var',
-        times=c('f1', 'f2'),
-        v.names=c('avg', 'sd'),
-        idvar=c('sbj','blabla'))
-
-
-
-idColumnsThatAreSameForLeftAndRightTargets<- colnames(ee)[1:23]
-idColsMinimal<-colnames(ee)[1:6]
-#First melt only answer, then melt only response, then only correct, then cueSerialPos, then responsePosRel, then merge back together
-columnsToMelt<- colnames(ee)[24:33]
-
-#Make a simpler dataframe
-dw<- filter(ee,subject=="T1") #,wordEccentricity==6)
-dw<-ee #%>% select(subject,wordEccentricity,trialnum, answerLeft:responsePosRelRight)
-dl<-reshape(dw, direction='long', 
-            varying= columnsToMelt, 
-            timevar='side',
-            times=c('left', 'right'),
-            v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
-            idvar=idColsMinimal)
-rownames(dl)<-NULL
-write.csv(dl, file="dataRaw/T1.csv",row.names=FALSE)
-
-
-reshape(df, direction='long', 
-        varying= columnsToMelt, 
-        timevar='side',
-        times=c('left', 'right'),
-        v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
-        idvar=idColumnsThatAreSameForLeftAndRightTargets)
-
-#Make a simpler dataframe
-dw<-ee %>% filter(subject=="T1",wordEccentricity<7) %>% select(subject,wordEccentricity,trialnum, answerLeft:responsePosRelRight)
-dl<-reshape(dw, direction='long', 
-        varying= columnsToMelt, 
-        timevar='side',
-        times=c('left', 'right'),
-        v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
-        idvar=c("subject","trialnum","wordEccentricity"))
-rownames(dl)<-NULL
-
-
-
-
-
-
-
-#Step through each pair of columns, melt, then merge
-for (i in seq(1,length(columnsToMelt),2)) {
-  colsToMelt<- columnsToMelt[ seq(i,i+1) ]
-  print(colsToMelt)
-  dfThis<- select(df,c(idColumnsThatAreSameForLeftAndRightTargets,colsToMelt) )
-  
-  #Assume that it's of the form answerLeft or xxxxLeft and cut off the last four letters ("Left")
-  newValueName<- substr( colsToMelt[1], 1, nchar(colsToMelt[1])-4 )
-  meltedThis<- melt(dfThis, id=idColumnsThatAreSameForLeftAndRightTargets, value.name=newValueName) 
-  #melt created a new variable called "variable" which we want to call targetSide
-  meltedThis<- rename(meltedThis, targetSide = variable)
-}
-  
-ff<- melt(ee, id=idColumnsThatAreSameForLeftAndRightTargets, value.name="answer")
 
