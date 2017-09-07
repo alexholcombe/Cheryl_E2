@@ -2,7 +2,6 @@
 # setwd("~/Desktop/Analysis/data")
 rawDataPath<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
 
-
 turnRawPsychopyOutputIntoMeltedDataframe<- function(df) {
   
   
@@ -11,7 +10,7 @@ df<-dfThis
 library(dplyr)
 
 dealWithRightResponseFirstMess<- function(df) {
-  #cheryl RIGHT SOMETHING TO EXPLAIN ALL THIS HERE
+  #cheryl WRITE SOMETHING TO EXPLAIN ALL THIS HERE
   df<- mutate(df, answerLeft = ifelse(rightResponseFirst=="True", 
                                       yes = answer1,
                                       no = answer0) )
@@ -93,7 +92,6 @@ readInAllFiles<- function(rawDataPath) {
 E<- readInAllFiles(rawDataPath)
 ee<- dealWithRightResponseFirstMess(E)
 
-
 require(reshape2)
 
 dw <- read.table(header=T, text='
@@ -113,8 +111,22 @@ reshape(dw, direction='long',
 
 
 idColumnsThatAreSameForLeftAndRightTargets<- colnames(ee)[1:23]
+idColsMinimal<-colnames(ee)[1:6]
 #First melt only answer, then melt only response, then only correct, then cueSerialPos, then responsePosRel, then merge back together
 columnsToMelt<- colnames(ee)[24:33]
+
+#Make a simpler dataframe
+dw<- filter(ee,subject=="T1") #,wordEccentricity==6)
+dw<-ee #%>% select(subject,wordEccentricity,trialnum, answerLeft:responsePosRelRight)
+dl<-reshape(dw, direction='long', 
+            varying= columnsToMelt, 
+            timevar='side',
+            times=c('left', 'right'),
+            v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
+            idvar=idColsMinimal)
+rownames(dl)<-NULL
+write.csv(dl, file="dataRaw/T1.csv",row.names=FALSE)
+
 
 reshape(df, direction='long', 
         varying= columnsToMelt, 
@@ -131,6 +143,13 @@ dl<-reshape(dw, direction='long',
         times=c('left', 'right'),
         v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
         idvar=c("subject","trialnum","wordEccentricity"))
+rownames(dl)<-NULL
+
+
+
+
+
+
 
 #Step through each pair of columns, melt, then merge
 for (i in seq(1,length(columnsToMelt),2)) {
