@@ -78,7 +78,7 @@ readInAllFiles<- function(rawDataPath) {
     
     rawData$file <- files[i]
 
-    #dfThis<- turnRawPsychopyOutputIntoMeltedDataframe(rawDataLoad)
+    dfThis<- rawData
 
     tryCatch(
       dfAll<-rbind(dfAll,dfThis), #if fail to bind new with old,
@@ -93,10 +93,44 @@ readInAllFiles<- function(rawDataPath) {
 E<- readInAllFiles(rawDataPath)
 ee<- dealWithRightResponseFirstMess(E)
 
+
 require(reshape2)
+
+dw <- read.table(header=T, text='
+ sbj f1.avg f1.sd f2.avg f2.sd  blabla
+                 A   10    6     50     10      bA
+                 B   12    5     70     11      bB
+                 C   20    7     20     8       bC
+                 D   22    8     22     9       bD
+                 ')
+reshape(dw, direction='long', 
+        varying=c('f1.avg', 'f1.sd', 'f2.avg', 'f2.sd'), 
+        timevar='var',
+        times=c('f1', 'f2'),
+        v.names=c('avg', 'sd'),
+        idvar=c('sbj','blabla'))
+
+
+
 idColumnsThatAreSameForLeftAndRightTargets<- colnames(ee)[1:23]
 #First melt only answer, then melt only response, then only correct, then cueSerialPos, then responsePosRel, then merge back together
 columnsToMelt<- colnames(ee)[24:33]
+
+reshape(df, direction='long', 
+        varying= columnsToMelt, 
+        timevar='side',
+        times=c('left', 'right'),
+        v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
+        idvar=idColumnsThatAreSameForLeftAndRightTargets)
+
+#Make a simpler dataframe
+dw<-ee %>% filter(subject=="T1",wordEccentricity<7) %>% select(subject,wordEccentricity,trialnum, answerLeft:responsePosRelRight)
+dl<-reshape(dw, direction='long', 
+        varying= columnsToMelt, 
+        timevar='side',
+        times=c('left', 'right'),
+        v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
+        idvar=c("subject","trialnum","wordEccentricity"))
 
 #Step through each pair of columns, melt, then merge
 for (i in seq(1,length(columnsToMelt),2)) {
