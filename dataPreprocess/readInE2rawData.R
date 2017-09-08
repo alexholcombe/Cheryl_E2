@@ -1,22 +1,36 @@
 
 # setwd("~/Desktop/Analysis/data")
 rawDataPath<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
-savePath<- file.path('dataPreprocessed')
-  
+savePath<- file.path('dataPreprocess')
+
+library(dplyr)
+library(tidyr)
+
+renameForGather<- function(df) {
+  df<- dplyr::rename(df,left.answer=answerLeft,right.answer=answerRight,
+             left.response=responseLeft,right.response=responseRight,
+         left.correct=correctLeft,right.correct=correctRight,
+         left.cueSerialPos=cueSerialPosLeft,
+         right.cueSerialPos=cueSerialPosRight,left.responsePosRel=responsePosRelLeft,
+         right.responsePosRel=responsePosRelRight) 
+  df<-select(df,   -one_of("responsePosRelative0","responsePosRelative1","response0","response1",
+                           "correct0","correct1","answer0","answer1") )
+  return(df) 
+}
+
 turnRawPsychopyOutputIntoMeltedDataframe<- function(df) {
   idColsMinimal<-colnames(df)[1:6] #->wordEccentricity
   columnsToMelt<- colnames(df)[24:33]
   #https://stackoverflow.com/questions/23945350/reshaping-wide-to-long-with-multiple-values-columns
-  dl<-reshape(df, direction='long', 
-              varying= columnsToMelt, 
-              timevar='side',
-              times=c('left', 'right'),
-              v.names=c('answer', 'response','correct','cueSerialPos','responsePosRel'),
-              idvar=idColsMinimal)
+dl<-  df %>% 
+    gather(v, value, left.answer:right.responsePosRel) %>% 
+    separate(v, c("var", "col")) %>% 
+    arrange(subject,trialnum,wordEccentricity) %>% 
+    spread(col, value) %>% rename(side=var)
   rownames(dl)<-NULL
   return(dl)
 }
-library(dplyr)
+
 
 dealWithRightResponseFirstMess<- function(df) {
   #cheryl WRITE SOMETHING TO EXPLAIN ALL THIS HERE
@@ -90,6 +104,8 @@ readInAllFiles<- function(rawDataPath) {
     #left and right correct are not simple because column depends on rightResponseFirst
     dfThis<- dealWithRightResponseFirstMess(rawData)
     
+    dfThis<- renameForGather(dfThis)
+    
     dfThis<- turnRawPsychopyOutputIntoMeltedDataframe(dfThis)
 
     tryCatch(
@@ -101,9 +117,16 @@ readInAllFiles<- function(rawDataPath) {
   return(dfAll)
 }
 
-
 dfAll<- readInAllFiles(rawDataPath)
 
+dfAll$numItemsInStream<-26
+
+#R code needs
+# $targetSP, the serial position of the target on that trial
+# $SPE, the serial position error
+dfAll$targetSP<- dfAll$cueSerialPos
+dfAll$SPE<- dfAll$responsePosRel
+E2melted<-dfAll
 saveRDS(dfAll, file=file.path(savePath,"E2melted.Rdata"))
 
 

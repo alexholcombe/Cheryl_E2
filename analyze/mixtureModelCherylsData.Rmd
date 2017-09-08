@@ -1,0 +1,144 @@
+---
+title: "Cheryl E2 Chinese character separation"
+author: "Alex Holcombe"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE,  comment = NA)
+# http://htmlpreview.github.io/?
+
+#The below doesn't work because some files in there have to set paths
+#mixModelingPath<- file.path("~/Documents/attention_tempresltn/RSVPdataAnalysis/MixtureModelRSVP/mixtureModeling")
+mixModelingPath<-'mixtureModeling'  #Need local copy of mixtureModeling directories unfortunately
+```
+
+Import data
+
+```{r importData, echo=FALSE, message=FALSE}
+#rm(list=ls())
+
+#Seems like working directory for Rmd file required to be where it's located
+dataPath<- file.path("../dataPreprocess")
+
+#Experiment was administered by Psychopy
+#.txt file been preprocessed into melted long dataframe 
+fileWithPath<- file.path(dataPath, "E2melted.Rdata")
+if (!dir.exists(dataPath)) {
+  print("Something about your paths is messed up. Can't even find data directory")
+}
+if (!file.exists(fileWithPath)) {
+  print("Something about your fileWithPath is messed up maybe, can't find data file")
+}
+
+E2melted<- readRDS( fileWithPath  ) 
+
+#tidy data
+library(dplyr)
+df<- E2melted
+#It seems that to work with dplyr, can't have array field like letterSeq
+df$seq1<- NULL; df$seq2<- NULL
+
+numItemsInStream<- 26
+#Calculate minimum and maximum SPE
+
+#To make easier to read, remove irrelevant columns
+irrelevantColumns<-c('task','noisePercent','leftStreamFlip','rightStreamFlip',
+                     'file','responsePosRel') #'responsePosRel is same as SPE
+df<-select(df, -one_of(irrelevantColumns)) #don't know why have to add one_of but described here: https://stackoverflow.com/questions/35839408/r-dplyr-drop-multiple-columns
+
+
+```
+
+Will analyze data broken down by the following variables 
+```{r, echo=TRUE, message=FALSE, cache=TRUE}
+condtnVariableNames = c('subject','wordEccentricity','side')
+```
+
+Fit mixture model with R (if fitting not previously done and cached). 
+```{r, echo=FALSE, message=FALSE, cache=TRUE}
+#Setting cache = TRUE in hopes won't have to recalculate estimates "if cached results exist and this code chunk has not been changed since last run" 
+source( file.path(mixModelingPath,"analyzeOneCondition.R") )
+source( file.path(mixModelingPath,"parameterBounds.R") )
+
+#Check whether already have parameter estimates or instead need to do it
+calculate<-FALSE
+if (!exists("estimates")) { 
+  calculate<-TRUE 
+}
+  
+if (calculate) {
+  estimates<- df %>%    #dplyr::filter(subject=="T1") %>%
+    group_by_(.dots = condtnVariableNames) %>%  #.dots needed when you have a variable containing multiple factor names
+    do(analyzeOneCondition(.,numItemsInStream,parameterBounds()))
+  estimates<- estimates %>% rename(efficacy = p1, latency = p2, precision = p3)
+}
+
+write.csv(estimates,"paramEstimatesCherylE2.csv")
+head(estimates)
+```
+
+Plot some of the fits
+
+* yellow = guessing component 
+* light blue = Gaussian component
+* green = sum of the guessing and Gaussian components. In other words, the histogram heights predicted by the model
+* dark blue = continuous Gaussian. This helps get a sense of the effect of discretising the Gaussian. For instance, it's possible (especially using Pat's method, it seems), for the Gaussian peak to fly high above the bars and still fit the discrete bins (or bin centers, in Pat's method), suggesting an undesirably high estimates of the efficacy (likely accompanied by an undesirably low precision)
+
+```{r, echo=FALSE, message=FALSE, fig.height=100, fig.width=10}
+#want fig.height of 10 per subject
+
+source( file.path(mixModelingPath,"calcCurvesDataframes.R") )
+
+possibleTargetSP<- sort(unique(df$targetSP))
+minTargetSP <- min(possibleTargetSP)
+maxTargetSP <- max(possibleTargetSP)
+minSPE <- 1 - maxTargetSP
+maxSPE <- numItemsInStream - minTargetSP
+  
+#create R curves
+df$subject <- as.character(df$subject) #So can do string comparison
+dg<- df  # %>%  dplyr::filter(subject <="T2") 
+source( file.path(mixModelingPath,"plotHistWithFit.R") ) #for calcFitDataframes
+source( file.path(mixModelingPath,"theme_apa.R") ) #for calcFitDataframes
+
+#Add R parameter estimates to dataframe
+dg<- merge(dg,estimates) 
+
+curvesR<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
+  do(calcCurvesDataframes(.,minSPE,maxSPE,numItemsInStream))
+
+#Calc numObservations to each condition. This is needed only for scaling the fine-grained Gaussian
+#Calc the number of observations for each condition, because gaussianScaledforData needs to know.
+dfGroups<- df %>% group_by_at(.vars = condtnVariableNames) %>% summarise(nPerCond = n())
+#add nPerCond back to parameter estimates
+estimates<- merge(estimates,dfGroups)
+grain<-.05
+gaussianFineR<- estimates %>% group_by_at(.vars = condtnVariableNames) %>% do(
+  gaussianScaledFromDataframe(.,minSPE,maxSPE,grain) )
+
+
+#PLOT EVERYTHING
+g=ggplot(dg, aes(x=SPE)) + facet_grid(subject+wordEccentricity~side,  scales="free_y")
+g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
+g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
+#g<-g+ theme(line=element_blank(), panel.border = element_blank())
+sz=.8
+#Plot the underlying Gaussian , not just the discretized Gaussian
+g<-g + geom_line(data=gaussianFineR,aes(x=x,y=gaussianFreq),color="darkblue",size=1.2)
+
+g<-g+ geom_point(data=curvesR,aes(x=x,y=combinedFitFreq),color="chartreuse3",size=sz*2.5)
+g<-g+ geom_line(data=curvesR,aes(x=x,y=guessingFreq),color="yellow",size=sz)
+#Discretized Gaussian
+g<-g+ geom_line(data=curvesR,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
+
+numGroups<- length(table(df$subject,df$wordEccentricity,df$side))
+fontSz = 400/numGroups
+g<-g + geom_text(data=curvesR,aes(x=-9,y=32, label = paste("-logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curvesR,aes(x=-7,y=28, label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curvesR,aes(x=-7,y=25, label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
+  geom_text(data=curvesR,aes(x=-7,y=22, label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
+show(g)
+```
+
