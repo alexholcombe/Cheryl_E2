@@ -1,6 +1,9 @@
 
 # setwd("~/Desktop/Analysis/data")
-rawDataPath<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
+rawDataPathE2<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
+rawDataPathE1<- file.path( 'dataRaw/dataE1' ) #Cheryl-prepared files
+rawDataPath<- rawDataPathE1
+exp<-"E2"
 savePath<- file.path('dataPreprocess')
 
 library(dplyr)
@@ -13,6 +16,9 @@ renameForGather<- function(df) {
          left.cueSerialPos=cueSerialPosLeft,
          right.cueSerialPos=cueSerialPosRight,left.responsePosRel=responsePosRelLeft,
          right.responsePosRel=responsePosRelRight) 
+  if (exp=="E1") {
+    df<-dplyr::rename(df, wordEccentricity = wordEcc)
+  }
   df<-select(df,   -one_of("responsePosRelative0","responsePosRelative1","response0","response1",
                            "correct0","correct1","answer0","answer1") )
   return(df) 
@@ -20,7 +26,11 @@ renameForGather<- function(df) {
 
 turnRawPsychopyOutputIntoMeltedDataframe<- function(df) {
   idColsMinimal<-colnames(df)[1:6] #->wordEccentricity
-  columnsToMelt<- colnames(df)[24:33]
+  if (exp=="E1") {
+    columnsToMelt<- colnames(df)[17:26]
+  } else {
+    columnsToMelt<- colnames(df)[24:33]
+  }
   #https://stackoverflow.com/questions/23945350/reshaping-wide-to-long-with-multiple-values-columns
 dl<-  df %>% 
     gather(v, value, left.answer:right.responsePosRel) %>% 
@@ -90,16 +100,27 @@ readInAllFiles<- function(rawDataPath) {
        } )
 
     #subject name indicated by name of file
-    apparentSubjectName <- strsplit(files[i],split="_")[[1]][1]
+    filename<-files[i]
+    if (exp=="E1") { # in E1 Cheryl indicated the session with a dash, like "12-"
+      apparentSubjectName<- strsplit(filename,split="-")[[1]][1]
+    } else {
+      apparentSubjectName <- strsplit(filename,split="_")[[1]][1]
+    }
+    print(paste("Apparent subject name about to load is",apparentSubjectName))
     #subject name according to file contents
     subjectName<- as.character(  rawData$subject[1] )
+    if (exp=="E1") {
+      subjectName <- strsplit(filename,split="-")[[1]][1]  #remove session number
+      rawData$subject<- subjectName #Don't keep session number in subject field because then will be analyzed seaprately
+      rawData$sesssion<- strsplit(filename,split="-")[[1]][2]
+    }
     if (apparentSubjectName != subjectName) {
       stop( paste("WARNING apparentSubjectName",apparentSubjectName," from filename does not match subjectName in data structure",
                   subjectName, "in file",files[i]) )
     }
 
     
-    rawData$file <- files[i]
+    rawData$file <- filename
     
     #left and right correct are not simple because column depends on rightResponseFirst
     dfThis<- dealWithRightResponseFirstMess(rawData)
@@ -127,6 +148,7 @@ dfAll$numItemsInStream<-26
 dfAll$targetSP<- dfAll$cueSerialPos
 dfAll$SPE<- dfAll$responsePosRel
 E2melted<-dfAll
-saveRDS(dfAll, file=file.path(savePath,"E2melted.Rdata"))
+saveFileName<- paste0(exp,"melted.Rdata")
+saveRDS(dfAll, file=file.path(savePath,saveFileName))
 
 
