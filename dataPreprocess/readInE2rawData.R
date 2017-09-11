@@ -2,8 +2,10 @@
 # setwd("~/Desktop/Analysis/data")
 rawDataPathE2<- file.path( 'dataRaw/dataE2' ) #Cheryl-prepared files
 rawDataPathE1<- file.path( 'dataRaw/dataE1' ) #Cheryl-prepared files
-rawDataPath<- rawDataPathE1
+
+rawDataPath<- rawDataPathE2
 exp<-"E2"
+
 savePath<- file.path('dataPreprocess')
 
 library(dplyr)
@@ -147,7 +149,7 @@ dfAll$numItemsInStream<-26
 # $SPE, the serial position error
 dfAll$targetSP<- dfAll$cueSerialPos
 dfAll$SPE<- dfAll$responsePosRel
-E2melted<-dfAll
+melted<-dfAll
 saveFileName<- paste0(exp,"melted.Rdata")
 saveRDS(dfAll, file=file.path(savePath,saveFileName))
 

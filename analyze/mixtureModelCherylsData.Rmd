@@ -1,5 +1,5 @@
 ---
-title: "Cheryl E2 Chinese character separation"
+title: "Cheryl E1 English or  E2 Chinese character separation"
 author: "Alex Holcombe"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: html_document
@@ -14,7 +14,13 @@ knitr::opts_chunk$set(echo = TRUE,  comment = NA)
 mixModelingPath<-'mixtureModeling'  #Need local copy of mixtureModeling directories unfortunately
 ```
 
-Import data
+```{r dataFileName, include=FALSE, message=FALSE}
+
+exp="E1" #E2"
+savedDataFilename<- paste0(exp,"melted.Rdata")
+```
+
+Import data from `r savedDataFilename`
 
 ```{r importData, echo=FALSE, message=FALSE}
 #rm(list=ls())
@@ -23,8 +29,10 @@ Import data
 dataPath<- file.path("../dataPreprocess")
 
 #Experiment was administered by Psychopy
-#.txt file been preprocessed into melted long dataframe 
-fileWithPath<- file.path(dataPath, "E2melted.Rdata")
+#.txt file been preprocessed into melted long dataframe
+
+
+fileWithPath<- file.path(dataPath, savedDataFilename)
 if (!dir.exists(dataPath)) {
   print("Something about your paths is messed up. Can't even find data directory")
 }
@@ -32,11 +40,11 @@ if (!file.exists(fileWithPath)) {
   print("Something about your fileWithPath is messed up maybe, can't find data file")
 }
 
-E2melted<- readRDS( fileWithPath  ) 
+melted<- readRDS( fileWithPath  ) 
 
 #tidy data
 library(dplyr)
-df<- E2melted
+df<- melted
 #It seems that to work with dplyr, can't have array field like letterSeq
 df$seq1<- NULL; df$seq2<- NULL
 
@@ -75,7 +83,8 @@ if (calculate) {
   estimates<- estimates %>% rename(efficacy = p1, latency = p2, precision = p3)
 }
 
-write.csv(estimates,"paramEstimatesCherylE2.csv")
+estimatesFilename<- paste0("paramEstimatesCheryl",exp,".csv")
+write.csv(estimates,estimatesFilename)
 head(estimates)
 ```
 
