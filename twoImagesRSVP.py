@@ -99,7 +99,7 @@ except: #in case file missing, create inferiro click manually
 clickSound, badKeySound = stringResponse.setupSoundsForResponse()
 
 # create a dialog from dictionary 
-infoFirst = { 'Do staircase (only)': False, 'Check refresh etc':True, 'Fullscreen (timing errors if not)': False, 'Screen refresh rate':refreshRate }
+infoFirst = { 'Do staircase (only)': False, 'Check refresh etc':False, 'Fullscreen (timing errors if not)': False, 'Screen refresh rate':refreshRate }
 OK = gui.DlgFromDict(dictionary=infoFirst, 
     title='Dual-RSVP experiment OR staircase to find thresh noise level for performance criterion', 
     order=['Do staircase (only)', 'Check refresh etc', 'Fullscreen (timing errors if not)'], 
@@ -315,9 +315,10 @@ def calcSequenceForThisTrial():
     #assumes at least as many items in stimList as in stream
     print("lenStimFileList",len(stimFileList))  #this
     idxsIntoStimList = range(len(stimFileList)) #create a list of indexes of the entire stim list: 0,1,2,3,4,5,...23
+    idxsIntoStimList = list(idxsIntoStimList)
     print("idxsInto",idxsIntoStimList)
     #if not readFromFile: #just create a shuffled index of all the possibilities
-    np.random.shuffle(idxsIntoStimList) #0,1,2,3,4,5,... -> randomly permuted 3,2,5,...
+    np.random.shuffle( idxsIntoStimList ) #0,1,2,3,4,5,... -> randomly permuted 3,2,5,...
     print("idxsIntoStimList",idxsIntoStimList)
     idxsStream1 = copy.deepcopy(idxsIntoStimList) #first RSVP stream
     idxsStream1= idxsStream1[:numStimInStream] #take the first numStimInStream of the shuffled list
@@ -338,7 +339,7 @@ def calcAndPredrawStimuli(fileList,cues, preCues,thisTrial): #Called before each
     #print('wordList=',wordList)
     stimuliStream1[:] = [] #Delete all items in the list
     stimuliStream2[:] = [] #Delete all items in the list
-    for i in xrange( len(cues) ):
+    for i in range( len(cues) ):
         eccentricity = thisTrial['wordEccentricity']
         if eccentricity < 2:  #kludge to deal with very low separation case where want just one cue - draw them both in the same place
             eccentricity = 0
@@ -385,7 +386,8 @@ if showRefreshMisses:
 else: fixSizePix = 32
 fixColor = [1,1,1]
 if exportImages: fixColor= [0,0,0]
-fixatnNoiseTexture = np.round( np.random.rand(fixSizePix/4,fixSizePix/4) ,0 )   *2.0-1 #Can counterphase flicker  noise texture to create salient flicker if you break fixation
+matrix = np.random.rand( int(fixSizePix/4), int(fixSizePix/4) )
+fixatnNoiseTexture = np.round( matrix ,0 )   *2.0-1 #Can counterphase flicker  noise texture to create salient flicker if you break fixation
 
 #Construct the fixation point.
 fixation= visual.PatchStim(myWin, tex=fixatnNoiseTexture, size=(fixSizePix,fixSizePix), units='pix', mask='circle', interpolate=False, autoLog=False)
@@ -489,7 +491,7 @@ def  oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames
     cue.setLineColor( bgColor )
   if type(cueFrames) not in [tuple,list,np.ndarray]: #scalar. But need collection to do loop based on it
     cueFrames = list([cueFrames])
-  for i in xrange( len(cueFrames) ): #check whether it's time for any cue. Assume first cueFrame is for first cue, etc.
+  for i in range( len(cueFrames) ): #check whether it's time for any cue. Assume first cueFrame is for first cue, etc.
     thisCueFrame = cueFrames[i]
     if n>=thisCueFrame and n<thisCueFrame+cueDurFrames:
          cues[i].setLineColor( cueColor )
@@ -519,7 +521,7 @@ def  oneFrameOfStim( n,cues,cuesSerialPos,seq1,seq2,cueDurFrames,letterDurFrames
 #############################################################################################################################
 cues = list()
 preCues = list()
-for i in xrange(2):
+for i in range(2):
     cue = visual.Circle(myWin, 
                      radius=cueRadius,#Martini used circles with diameter of 12 deg
                      lineColorSpace = 'rgb',
